@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-# Patek-Philippe-Scrapper-Utils
 Patek Philippe Scraper &amp; Data Processor
 =======
 Patek Philippe Scraper & Data Processor
@@ -121,5 +119,4 @@ This project is released under the MIT License. You are free to use, modify, and
 
 ⸻
 
-Enjoy scraping and data processing! If you encounter any issues, feel free to open an Issue or submit a Pull Request. ￼
->>>>>>> e6be193 (Initial commit)
+Enjoy scraping and data processing! If you encounter any issues, feel free to open an Issue or submit a Pull Request.
