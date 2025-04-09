@@ -1,6 +1,5 @@
 Patek Philippe Scraper &amp; Data Processor
 =======
-Patek Philippe Scraper & Data Processor
 
 This repository contains three Python scripts designed to:
 
