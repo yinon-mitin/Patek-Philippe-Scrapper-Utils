@@ -1,22 +1,16 @@
 Patek Philippe Scraper &amp; Data Processor
 =======
-Patek Philippe Scraper & Data Processor
 
 This repository contains three Python scripts designed to:
+ 1. Scrape watch data from the Patek Philippe website.
+ 2. Convert / Clean the raw scraped CSV data into a refined format.
+ 3. Download watch images for each SKU from the official static domain.
 
- 	1.	Scrape watch data from the Patek Philippe website.
- 	2.	Convert / Clean the raw scraped CSV data into a refined format.
- 	3.	Download watch images for each SKU from the official static domain.
-
-
-
-Table of Contents:
-
-[TOC]
 
 # Prerequisites
-​	•	Python 3.7+ (Python 3.10+ recommended)
-​	•	Git (optional, if you want to clone the repository directly)
+• Python 3.7+ (Python 3.10+ recommended)
+
+• Git (optional, if you want to clone the repository directly)
 
 
 
