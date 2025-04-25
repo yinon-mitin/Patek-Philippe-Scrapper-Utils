@@ -99,7 +99,7 @@ def create_session():
 def get_model_links(session):
     # Gets a list of model URLs from the home page, filtering by allowed collections
     all_models_url = "https://www.patek.com/en/collection/all-models"
-    print("Получение списка моделей с главной страницы...")
+    print("Getting a list of models from the home page...")
     response = session.get(all_models_url)
     soup = BeautifulSoup(response.content, 'html.parser')
     links = []
@@ -110,7 +110,7 @@ def get_model_links(session):
             full_url = "https://www.patek.com" + href
             if full_url not in links:
                 links.append(full_url)
-    print(f"Найдено {len(links)} ссылок на модели.")
+    print(f"Found {len(links)} of links to models.")
     return links
 
 def parse_watch_page(session, url):
@@ -118,7 +118,7 @@ def parse_watch_page(session, url):
     try:
         response = session.get(url)
     except Exception as e:
-        print(f"Ошибка при запросе {url}: {e}")
+        print(f"Query error {url}: {e}")
         return None
 
     soup = BeautifulSoup(response.content, 'html.parser')

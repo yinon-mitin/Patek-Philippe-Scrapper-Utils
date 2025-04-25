@@ -61,10 +61,10 @@ def parse_case_dimensions(case_text: str) -> str:
     
     # Searches the dimensions string for the following options:
     # - “Case dimensions: 25.1 x 30 mm.”
-    # - “Dimensions: 28.6 x 40.85 mm. Height: 7.36 mm.”
+    # - “Dimensions: 28.6 x 40.85 mm. Thickness: 7.36 mm.”
     # Returns the entire sequence of characters that begins after “dimensions:” (or “dimensions:”),
     # including numbers, spaces, the “x” (or “×”) separator, hyphens, etc., up to “mm”.
-    # For example, for the string “Dimensions: 28.6 x 40.85 mm. Height: 7.36 mm.” the function will return “28.6 x 40.85 mm”.
+    # For example, for the string “Dimensions: 28.6 x 40.85 mm. Thickness: 7.36 mm.” the function will return “28.6 x 40.85 mm”.
     
     pattern = (
         r"(?:[Cc]ase\s+)?[Dd]imension(?:s)?\s*:\s*"  # "Case dimensions:" or "Dimensions:" (s optonally)
@@ -73,15 +73,15 @@ def parse_case_dimensions(case_text: str) -> str:
     match = re.search(pattern, case_text)
     return match.group(1).strip() if match else ""
 
-def parse_case_height(case_text: str) -> str:
+def parse_case_thickness(case_text: str) -> str:
     
-    # Extracts the height or thickness of the watch case from the text.
+    # Extracts the Height or thickness of the watch case from the text.
     # 
     # Supported options:
     # - “Height : 16.32 mm”
-    # - “Height : 16.32 mm”
-    # - “Height: 16.32 mm” (in case of a typo)
-    # - “Thickness : 7.36 mm”
+    # - “Thickness : 16.32 mm”
+    # - “thickness: 16.32 mm” (in case of a typo)
+    # - “Height : 7.36 mm”
     # - “Thickness : 7.36 mm”
     # 
     # Returns a numeric value (e.g. “16.32” or “7.36”) or an empty string if not found.
@@ -93,20 +93,20 @@ def parse_case_height(case_text: str) -> str:
 def build_size_dimensions(case_text: str, diameter_val: str) -> str:
     
     # Returns the value for the “Size/Dimensions” column in the format:
-    # - “xx.x mm x yy.y mm” if both diameter and height/thickness are found
+    # - “xx.x mm x yy.y mm” if both diameter and thickness are found
     # - “xx.x mm” if only diameter is found
     # - If there is no diameter data in the case, returns an empty string.
     # 
     # If dimensions are explicitly present in the text (e.g., “Case dimensions: ...”),
-    # the function uses them in their entirety. Otherwise, it assembles the string from diameter and height/thickness.
+    # the function uses them in their entirety. Otherwise, it assembles the string from diameter and thickness/thickness.
     
     # If explicit dimensions are present, we use them:
     dims = parse_case_dimensions(case_text)
     if dims:
         return dims.strip()
 
-    # Try to extract height/thickness:
-    height_val = parse_case_height(case_text)
+    # Try to extract thickness/thickness:
+    thickness_val = parse_case_thickness(case_text)
     
     # Convert the extracted values to a format with one decimal digit,
     # if they exist and are correctly converted to a number.
@@ -120,16 +120,16 @@ def build_size_dimensions(case_text: str, diameter_val: str) -> str:
         diameter_formatted = diameter_val
 
     try:
-        if height_val:
-            height_num = float(height_val)
-            height_formatted = f"{height_num:.1f}"
+        if thickness_val:
+            thickness_num = float(thickness_val)
+            thickness_formatted = f"{thickness_num:.1f}"
         else:
-            height_formatted = ""
+            thickness_formatted = ""
     except ValueError:
-        height_formatted = height_val
+        thickness_formatted = thickness_val
 
-    if diameter_formatted and height_formatted:
-        return f"{diameter_formatted} mm x {height_formatted} mm"
+    if diameter_formatted and thickness_formatted:
+        return f"{diameter_formatted} mm x {thickness_formatted} mm"
     elif diameter_formatted:
         return f"{diameter_formatted} mm"
     else:
@@ -446,7 +446,7 @@ def main():
         "Dial Color",
         "Case Size(mm)",
         "Size/Dimensions",
-        "Case Height",
+        "Case Thickness",
         "Water Resistance",
         "Gender",
         "Gender New",
@@ -539,8 +539,8 @@ def main():
         # Case Dimensions
         size_dimensions_val = build_size_dimensions(case_text, diameter_val)
 
-        #Case Height
-        height_val = parse_case_height(case_text)
+        #Case thickness
+        thickness_val = parse_case_thickness(case_text)
 
         # Water Resistance
         water_res_val = parse_water_resistance(case_text)
@@ -584,7 +584,7 @@ def main():
             "Dial Color": dial_color_val,
             "Case Size(mm)": diameter_val,
             "Size/Dimensions": size_dimensions_val,
-            "Case Height": height_val,
+            "Case Thickness": thickness_val,
             "Water Resistance": water_res_val,
             "Gender": gender_val,
             "Gender New": gender_new_val,

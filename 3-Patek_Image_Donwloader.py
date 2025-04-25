@@ -28,7 +28,7 @@ def get_skus(session):
     # Goes to the all-models page and retrieves the SKU list.
     # The SKU is taken from the last segment of the URL if it contains a '-' character.
     
-    print("Получение списка моделей со страницы all-models...")
+    print("Getting a list of models from the all-models page...")
     response = session.get(ALL_MODELS_URL)
     response.raise_for_status()
     soup = BeautifulSoup(response.content, "html.parser")
@@ -40,7 +40,7 @@ def get_skus(session):
             if "-" in candidate:
                 skus.add(candidate)
     skus = list(skus)
-    print(f"Найдено {len(skus)} моделей (SKU).")
+    print(f"Found {len(skus)} models (SKU).")
     return skus
 
 def download_image(session, sku, num):
