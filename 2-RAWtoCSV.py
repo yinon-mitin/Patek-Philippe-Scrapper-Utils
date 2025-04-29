@@ -39,58 +39,75 @@ def parse_case_material(case_text: str) -> str:
     return ""
 
 def parse_case_diameter(case_text: str) -> str:
-    
-    # Searches for the diameter of the watch using the following options:
-    #   - “Diameter: 38 mm”
-    #   - “Case diameter: 40.5 mm”
-    #   - “Diameter (10'4 o'clock): 38.8 mm”
-    #   - “Case diameter (10-4 o'clock): 40.8 mm”
-    # Returns the numeric value as a string (e.g. “38.8”) or “” if not found.
-    
+    """
+    Extracts the case diameter value from text like 'Diameter: 38 mm'
+    and returns it formatted as '<float>.1f mm'.
+    """
     pattern = (
-        r"(?:[Cc]ase\s+)?[Dd]iameter"         # “Case diameter” or “Diameter”
-        r"(?:\s*\([^)]*\))?"                  # Optional block in brackets, e.g. (10'4 o'clock)
-        r"\s*:\s*"                           # Colon with spaces
-        r"(\d+(?:\.\d+)?)"                   # Numeric value (integer or fractional)
-        r"(?:[\s\u00A0\u2009]*mm\.?)"         # “mm” with spaces (including normal, unbroken and thin spaces) and a possible period
+        r"(?:[Cc]ase\s+)?[Dd]iameter"
+        r"(?:\s*\([^)]*\))?"
+        r"\s*[:\-]?\s*"
+        r"(\d+(?:[.,]\d+)?)"
+        r"(?:[\s\u00A0\u2009]*mm\.?)"
     )
     match = re.search(pattern, case_text)
-    return match.group(1).strip() if match else ""
+    if match:
+        val = float(match.group(1).replace(",", "."))
+        return f"{val:.1f} mm"
+    return ""
 
 def parse_case_dimensions(case_text: str) -> str:
-    
-    # Searches the dimensions string for the following options:
-    # - “Case dimensions: 25.1 x 30 mm.”
-    # - “Dimensions: 28.6 x 40.85 mm. Thickness: 7.36 mm.”
-    # Returns the entire sequence of characters that begins after “dimensions:” (or “dimensions:”),
-    # including numbers, spaces, the “x” (or “×”) separator, hyphens, etc., up to “mm”.
-    # For example, for the string “Dimensions: 28.6 x 40.85 mm. Thickness: 7.36 mm.” the function will return “28.6 x 40.85 mm”.
-    
+    """
+    Extracts the case dimensions value from text, e.g., "Dimensions: 28.6 x 40.85 mm".
+    """
     pattern = (
-        r"(?:[Cc]ase\s+)?[Dd]imension(?:s)?\s*:\s*"  # "Case dimensions:" or "Dimensions:" (s optonally)
-        r"([\d\.,\s×x\-–Éé]+mm)"                     # All characters allowed in the size up to “mm”
+        r"(?:[Cc]ase\s+)?[Dd]imension(?:s)?\s*:\s*"
+        r"([\d\.,\s×x\-–Éé]+mm)"
     )
     match = re.search(pattern, case_text)
     return match.group(1).strip() if match else ""
 
 def parse_case_thickness(case_text: str) -> str:
-    
-    # Extracts the Height or thickness of the watch case from the text.
-    # 
-    # Supported options:
-    # - “Height : 16.32 mm”
-    # - “Thickness : 16.32 mm”
-    # - “thickness: 16.32 mm” (in case of a typo)
-    # - “Height : 7.36 mm”
-    # - “Thickness : 7.36 mm”
-    # 
-    # Returns a numeric value (e.g. “16.32” or “7.36”) or an empty string if not found.
-    
-    pattern = r"(?:[Hh](?:eight|ight)|[Tt]hickness)\s*:\s*(\d+(?:\.\d+)?)\s*mm"
-    match = re.search(pattern, case_text)
-    return match.group(1).strip() if match else ""
+    """
+    Extracts thickness from case text using various possible labels:
+    'Thickness: 7.3 mm', 'Height: 8,08 mm', etc.
 
-def build_size_dimensions(case_text: str, diameter_val: str) -> str:
+    Returns:
+        str: Normalized thickness value with 'mm' or empty string if not found.
+    """
+    pattern = (
+        r"(?:[Tt]hickness|[Hh]eight)"     # Keywords
+        r"\s*[:\-]?\s*"                   # Optional formatting characters
+        r"(\d+(?:[.,]\d+)?)"              # Number with dot or comma
+        r"\s*mm\b"
+    )
+    match = re.search(pattern, case_text)
+    if match:
+        # Normalize to use dot (.)
+        value = match.group(1).replace(",", ".").strip()
+        return f"{value} mm"
+    return ""
+
+def extract_largest_from_dimensions(dimensions: str) -> str:
+    """
+    Extracts the largest number from a case dimensions string like '25.5 x 35 mm'
+    and returns it with 'mm'. Used as fallback for case_size.
+    """
+    if not dimensions:
+        return ""
+    
+    # Match numbers in formats like 25.5, 35, 25,5 etc.
+    number_pattern = r"(\d+(?:[.,]\d+)?)"
+    numbers = re.findall(number_pattern, dimensions)
+    if not numbers:
+        return ""
+    
+    # Normalize numbers to float for comparison
+    float_numbers = [float(n.replace(",", ".")) for n in numbers]
+    largest = max(float_numbers)
+    return f"{largest:.1f} mm"
+
+# def build_size_dimensions(case_text: str, diameter_val: str) -> str:
     
     # Returns the value for the “Size/Dimensions” column in the format:
     # - “xx.x mm x yy.y mm” if both diameter and thickness are found
@@ -294,7 +311,7 @@ def parse_dial_color(dial_text: str) -> str:
     return ""
 
 
-# === Other (Gender, Movement, Diamonds...) ===
+# === Other (Gender, Movement, Gemstones...) ===
 
 def parse_watch_shape(collection_name: str) -> str:
     
@@ -311,7 +328,7 @@ def parse_watch_shape(collection_name: str) -> str:
         "grand complications": "Round",
         "complications": "Round",
         "calatrava": "Round",
-        "twenty4": "Round",
+        "twenty~4": "Round",
         "pocket watches": "Round",
         "gondolo": "Rectangular",
         "golden ellipse": "Elipse",
@@ -321,30 +338,29 @@ def parse_watch_shape(collection_name: str) -> str:
     }
     return shape_map.get(name, "")
 
-def parse_movement_type(watch: str, watch_movement: str) -> str:
+def parse_movement_type(movement_type: str) -> str:
+    """
+    Parses the movement type from the new 'movement_type' field.
+    Recognizes 'automatic', 'manual', 'quartz', or returns empty string if not matched.
     
-    # If watch_type contains 'automatic'/'manual'/'quartz', return this.
-    # Otherwise, check watch_movement for 'self-winding' (-> automatic), 'manual', 'quartz'.
-    
-    wt = watch.lower()
-    if "automatic" in wt or "self-winding" in wt:
-        return "Automatic"
-    if "manual" in wt or "hand-wound" in wt:
-        return "Manual"
-    if "quartz" in wt:
-        return "Quartz"
+    Args:
+        movement_type (str): Raw movement type text.
 
-    wm = watch_movement.lower()
-    if "automatic" in wm or "self-winding" in wm:
+    Returns:
+        str: Normalized movement type ("Automatic", "Manual", "Quartz", or "").
+    """
+    mt = movement_type.lower() if isinstance(movement_type, str) else ""
+
+    if "automatic" in mt or "self-winding" in mt:
         return "Automatic"
-    if "manual" in wm or "hand-wound" in wm:
+    if "manual" in mt or "hand-wound" in mt:
         return "Manual"
-    if "quartz" in wm:
+    if "quartz" in mt:
         return "Quartz"
 
     return ""
 
-def determine_gender_by_size(diameter_str: str) -> (str, str):
+# def determine_gender_by_size(diameter_str: str) -> (str, str):
     
     # Determines values for Gender and Gender New based on Case Size (diameter).
     # 
@@ -353,23 +369,37 @@ def determine_gender_by_size(diameter_str: str) -> (str, str):
     # 
     # Returns:
     # (gender, gender_new)
-    # - If diameter is less than 36 mm: (“For Her”, “Ladies”)
-    # - If the diameter is 38 mm or more: (“For Him, For Her”, “Gents”)
-    # - If the diameter is between 36 and 38 mm: (“For Him, For Her”, “Gents”) (the threshold can be changed)
+    # - If diameter is less than 36 mm: (“For Her”, “For Her”)
+    # - If the diameter is 38 mm or more: (“For Him, For Her”, “For Him, For Her")
+    # - If the diameter is between 36 and 38 mm: (“For Him, For Her”, “For Him, For Her”) (the threshold can be changed)
     
     try:
         d = float(diameter_str)
     except (ValueError, TypeError):
         # If it fails to convert, default to male
-        return ("For Him, For Her", "Gents")
+        return ("For Him, For Her", "For Him")
     
     if d < 36:
-        return ("For Her", "Ladies")
+        return ("For Her", "For Her")
     elif d >= 38:
-        return ("For Him, For Her", "Gents, Ladies")
+        return ("For Him, For Her", "For Him, For Her")
     else:
         # For intermediate values (36-38 mm) default to male orientation
-        return ("For Him, For Her", "Gents, Ladies")
+        return ("For Him, For Her", "For Him, For Her")
+
+def map_gender_fields(gender: str) -> tuple[str, str]:
+    """
+    Maps 'Men' or 'Ladies' to two fields:
+    - original gender to gender_new
+    - human-readable label to gender ("For Him" / "For Her")
+    """
+    gender = gender.strip().lower() if isinstance(gender, str) else ""
+    if gender == "men":
+        return "Men", "For Him"
+    elif gender == "ladies":
+        return "Ladies", "For Her"
+    else:
+        return "", ""
 
 def parse_gemsetting_info(gem_text: str) -> (str, str):
     
@@ -403,6 +433,62 @@ def build_product_subtitle(sku: str, collection_title: str) -> str:
     base = remove_sku_suffix(sku)
     return f"{base}-{collection_title}"
 
+def build_tags(brands_val: str, gender_val: str, ref_number_val: str) -> str:
+    
+    # Forms a tag string for Shopify: combines fixed and variable values.
+    
+    tags = ["Watches", "Luxury Brands"]
+
+    if brands_val:
+        tags.append(brands_val)
+    if gender_val:
+        tags.append(gender_val)
+    if ref_number_val:
+        tags.append(ref_number_val)
+
+    return ", ".join(tags)
+
+def build_handle(title: str, ref_number_val: str) -> str:
+
+    # Creates a unique handle from title + ref_number.
+    # Convert to lower case, remove special characters, replace spaces and characters with “-”.
+
+    if not title:
+        title = ""
+    if not ref_number_val:
+        ref_number_val = ""
+
+    combined = f"{title}-{ref_number_val}".lower()
+
+    # Replace anything that's not letters/numbers with “-”
+    handle = re.sub(r"[^a-z0-9]+", "-", combined)
+
+    # Take out hyphens and hyphens
+    handle = handle.strip("-")
+
+    return handle
+
+def build_short_description(material_val: str, case_size_val: str, movement_type_val: str) -> str:
+    """
+    Builds a short description combining material, case size (mm), and movement type.
+    
+    Args:
+        material_val (str): Material of the watch case (e.g., "Rose Gold").
+        case_size_val (str): Diameter of the watch case (without 'mm').
+        movement_type_val (str): Movement type (e.g., "Self-winding").
+
+    Returns:
+        str: A short description like "Rose Gold, 38.8 mm, Self-winding".
+    """
+    short_parts = []
+    if material_val:
+        short_parts.append(material_val)
+    if case_size_val:
+        short_parts.append(case_size_val)
+    if movement_type_val:
+        short_parts.append(movement_type_val)
+    return ", ".join(short_parts)
+
 # =============================
 # Basic script 
 # =============================
@@ -425,39 +511,45 @@ def main():
     df = pd.read_csv(args.input, dtype=str, encoding="utf-8")
     
     # Further processing...
-    print("Файл успешно прочитан:", args.input)
+    print("The file has been successfully read:", args.input)
 
     # List of output columns
     out_cols = [
+        "Handle",
         "Title",
-        "Product Subtitle",
-        "Description",
-        "Short Description",
-        "Collection",
-        "Collection Description",
-        "Model",
-        "Ref Number",
-        "Brands",
-        "Type",
-        "Material",
-        "Case Material",
-        "Strap Type",
-        "Strap Color",
-        "Dial Color",
-        "Case Size(mm)",
-        "Size/Dimensions",
-        "Case Thickness",
-        "Water Resistance",
-        "Gender",
-        "Gender New",
-        "Buckle",
-        "Crystal",
-        "Movement Type",
-        "Watch Shape",
-        "Gemstones",
-        "Gemstones Description",
-        "Call for Price",
-        "URL"
+        "Metafield: custom.product_subtitle [single_line_text_field]",
+        "Body HTML",
+        "Metafield: description_tag [multi_line_text_field]",
+        "Metafield: short_description [multi_line_text_field]",
+        "Metafield: cartier_collection [single_line_text_field]",
+        #"Collection Description",
+        "Metafield: model [single_line_text_field]",
+        "Metafield: ref_number [single_line_text_field]",
+        "Metafield: brands [single_line_text_field]",
+        "Vendor",
+        "Category: Name",
+        "Tags",
+        "Metafield: type [single_line_text_field]",
+        "Metafield: material [single_line_text_field]",
+        "Metafield: case_material [single_line_text_field]",
+        "Metafield: type_of_strap [single_line_text_field]",
+        "Metafield: strap_color [single_line_text_field]",
+        "Metafield: dial_color [single_line_text_field]",
+        "Metafield: case_size [single_line_text_field]",
+        "Metafield: watch_dimensions [single_line_text_field]",
+        "Metafield: custom.thickness [single_line_text_field]",
+        "Metafield: water_resistance [single_line_text_field]",
+        "Metafield: gender [single_line_text_field]",
+        "Metafield: gender_new [single_line_text_field]",
+        "Metafield: buckle [single_line_text_field]",
+        "Metafield: crystal [single_line_text_field]",
+        "Metafield: movement [single_line_text_field]",
+        "Metafield: movement_type [single_line_text_field]",
+        "Metafield: watch_shape [single_line_text_field]",
+        "Metafield: custom.gemstones [single_line_text_field]",
+        "Metafield: custom.gemstones_description [single_line_text_field]",
+        "Metafield: callforprice [single_line_text_field]",
+        #"URL"
     ]
 
     results = []
@@ -471,12 +563,24 @@ def main():
         gem_text = clean_text(row.get("gemsetting", ""))
         watch_type_text = clean_text(row.get("watch", ""))
         watch_movement = clean_text(row.get("watch_movement", ""))
+        caliber_val = clean_text(row.get("caliber", ""))
         raw_collection = clean_text(row.get("collection", ""))
+        gender_raw = clean_text(row.get("gender", ""))
         url = clean_text(row.get("url",""))
 
 
         # Case Size(mm) — diameter
-        diameter_val = parse_case_diameter(case_text)
+        case_size_val = parse_case_diameter(case_text)
+
+        # Case Dimensions
+        watch_dimensions_val = parse_case_dimensions(case_text)
+
+        # Fallback: if case_size is empty, use the largest dimension
+        if not case_size_val and watch_dimensions_val:
+            case_size_val = extract_largest_from_dimensions(watch_dimensions_val)
+
+        #Case thickness
+        thickness_val = parse_case_thickness(case_text)
 
         # Collection Title
         collection_titlecase = raw_collection.replace("-", " ").title()
@@ -491,20 +595,13 @@ def main():
         description_val = desc
 
         # Material (Case)
-        material_val = parse_case_material(case_text)
+        material_val = parse_case_material(case_text) 
 
         # Movement Type
-        movement_type_val = parse_movement_type(watch_type_text, watch_movement)
+        movement_type_val = parse_movement_type(row.get("movement_type", ""))
 
-        # Short Description = [Material, <diameter> mm, Movement]
-        short_parts = []
-        if material_val:
-            short_parts.append(material_val)
-        if diameter_val:
-            short_parts.append(diameter_val + " mm")
-        if movement_type_val:
-            short_parts.append(movement_type_val)
-        short_desc_val = ", ".join(short_parts)
+        # Short Description
+        short_desc_val = build_short_description(material_val, case_size_val, movement_type_val)
 
         # Collection
         collection_val = collection_titlecase
@@ -513,7 +610,7 @@ def main():
         collection_desc_val = ""  # если нет
 
         # Model
-        model_val = collection_titlecase
+        model_val = remove_sku_suffix(sku_raw)
 
         # Ref Number
         ref_number_val = sku_raw
@@ -536,17 +633,12 @@ def main():
         # Dial Color
         dial_color_val = parse_dial_color(dial_text)
 
-        # Case Dimensions
-        size_dimensions_val = build_size_dimensions(case_text, diameter_val)
-
-        #Case thickness
-        thickness_val = parse_case_thickness(case_text)
-
         # Water Resistance
         water_res_val = parse_water_resistance(case_text)
 
         # Gender
-        gender_val, gender_new_val = determine_gender_by_size(diameter_val)
+        # gender_val, gender_new_val = determine_gender_by_size(diameter_val)
+        gender_new_val, gender_val = map_gender_fields(gender_raw)
 
         # Buckle
         buckle_val = parse_buckle(strap_text)
@@ -563,39 +655,51 @@ def main():
         # Call for Price = Yes
         call_for_price_val = "Yes"
 
+        # Tags
+        tags_val = build_tags(brands_val, gender_val, ref_number_val)
+
+        # Handle
+        handle_val = build_handle(title_val, ref_number_val)
+
         # URL
         url_val = url
 
         row_out = {
+            "Handle": handle_val,
             "Title": title_val,
-            "Product Subtitle": product_subtitle_val,
-            "Description": description_val,
-            "Short Description": short_desc_val,
-            "Collection": collection_val,
-            "Collection Description": collection_desc_val,
-            "Model": model_val,
-            "Ref Number": ref_number_val,
-            "Brands": brands_val,
-            "Type": type_val,
-            "Material": material_val,
-            "Case Material": case_material_val,
-            "Strap Type": strap_type_val,
-            "Strap Color": strap_color_val,
-            "Dial Color": dial_color_val,
-            "Case Size(mm)": diameter_val,
-            "Size/Dimensions": size_dimensions_val,
-            "Case Thickness": thickness_val,
-            "Water Resistance": water_res_val,
-            "Gender": gender_val,
-            "Gender New": gender_new_val,
-            "Buckle": buckle_val,
-            "Crystal": crystal_val,
-            "Movement Type": movement_type_val,
-            "Watch Shape": shape_val,
-            "Gemstones": gem_val,
-            "Gemstones Description": gem_desc_val,
-            "Call for Price": call_for_price_val,
-            "URL": url_val
+            "Metafield: custom.product_subtitle [single_line_text_field]": product_subtitle_val,
+            "Body HTML": description_val,
+            "Metafield: description_tag [multi_line_text_field]": description_val,
+            "Metafield: short_description [multi_line_text_field]": short_desc_val,
+            "Metafield: cartier_collection [single_line_text_field]": collection_val,
+            ## Don't needed "Collection Description": collection_desc_val,
+            "Metafield: model [single_line_text_field]": model_val,
+            "Metafield: ref_number [single_line_text_field]": ref_number_val,
+            "Metafield: brands [single_line_text_field]": brands_val,
+            "Vendor": brands_val,
+            "Category: Name": type_val,
+            "Tags": tags_val,
+            "Metafield: type [single_line_text_field]": type_val,
+            "Metafield: material [single_line_text_field]": material_val,
+            "Metafield: case_material [single_line_text_field]": case_material_val,
+            "Metafield: type_of_strap [single_line_text_field]": strap_type_val,
+            "Metafield: strap_color [single_line_text_field]": strap_color_val,
+            "Metafield: dial_color [single_line_text_field]": dial_color_val,
+            "Metafield: case_size [single_line_text_field]": case_size_val,
+            "Metafield: watch_dimensions [single_line_text_field]": watch_dimensions_val,
+            "Metafield: custom.thickness [single_line_text_field]": thickness_val,
+            "Metafield: water_resistance [single_line_text_field]": water_res_val,
+            "Metafield: gender [single_line_text_field]": gender_val,
+            "Metafield: gender_new [single_line_text_field]": gender_new_val,
+            "Metafield: buckle [single_line_text_field]": buckle_val,
+            "Metafield: crystal [single_line_text_field]": crystal_val,
+            "Metafield: movement [single_line_text_field]": caliber_val,
+            "Metafield: movement_type [single_line_text_field]": movement_type_val,
+            "Metafield: watch_shape [single_line_text_field]": shape_val,
+            "Metafield: custom.gemstones [single_line_text_field]": gem_val,
+            "Metafield: custom.gemstones_description [single_line_text_field]": gem_desc_val,
+            "Metafield: callforprice [single_line_text_field]": call_for_price_val,
+            # Don't needed "URL": url_val
         }
 
         results.append(row_out)
