@@ -11,7 +11,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 ALL_MODELS_URL = "https://www.patek.com/en/collection/all-models"
 IMAGE_BASE_URL = "https://static.patek.com/images/articles/gallery/2200/"
 IMG_FOLDER = "img"
-MAX_IMAGE_NUMBER = 21
+MAX_IMAGE_NUMBER = 7
+'''EXCEPTION_IMAGES = { # Exceptions: SKU -> list of specific image numbers to download (overrides default 1-7 range)
+    "4910-1200A-001": [13, 14, 15, 16, 18, 19],  # exclude 17
+    "5260-355R-001": [15, 16],                  # images of different straps
+    "6300-401G-001": [15],                      # image of buckle
+}'''   
 
 def create_session():
     # Creates a session with the desired headers and retrace strategy.
